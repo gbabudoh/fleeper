@@ -1,26 +1,370 @@
 @import "tailwindcss";
 
+/* ─── Brand accent colours (identical in both themes) ────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --mint:   #00FFCC;
+  --amber:  #FFB347;
+  --violet: #8B5CF6;
+
+  /* ── Dark theme tokens (default) ─────────────────────────────────────── */
+  --bg-base:    #0A0A0A;
+  --bg-sidebar: #0D0D0D;
+  --bg-glass:   rgba(22, 22, 22, 0.82);
+  --bg-input:   rgba(255, 255, 255, 0.05);
+  --bg-hover:   rgba(255, 255, 255, 0.08);
+  --bg-overlay: rgba(10, 10, 10, 0.80);
+
+  --fg-primary:   #ffffff;
+  --fg-secondary: rgba(255, 255, 255, 0.52);
+  --fg-muted:     rgba(255, 255, 255, 0.30);
+  --fg-faint:     rgba(255, 255, 255, 0.15);
+
+  --border-base:   rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.40);
+  --scrollbar-track: #0A0A0A;
+  --scrollbar-thumb: #2a2a2a;
+  --scrollbar-thumb-hover: #444;
+
+  --mesh-a: rgba(0, 255, 204, 0.055);
+  --mesh-b: rgba(139, 92, 246, 0.065);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ══════════════════════════════════════════════════════════════════════════
+   LIGHT THEME — full gradient design system
+   Palette: violet-lavender base, mint + amber accent orbs, frosted glass
+══════════════════════════════════════════════════════════════════════════ */
+html.light {
+  color-scheme: light;
+
+  /* ── Surface tokens ─────────────────────────────────────────────────── */
+  --bg-base:    #F2F0FA;   /* soft lavender base */
+  --bg-sidebar: #FDFCFF;   /* near-white, barely lavender */
+  --bg-glass:   rgba(255, 255, 255, 0.82);
+  --bg-input:   rgba(255, 255, 255, 0.90);
+  --bg-hover:   rgba(139, 92, 246, 0.08);
+  --bg-overlay: rgba(20, 10, 40, 0.45);
+
+  /* ── Text tokens — high contrast on light surfaces ──────────────────── */
+  --fg-primary:   #0E0C22;  /* near-black violet */
+  --fg-secondary: rgba(14, 12, 34, 0.72);  /* strong secondary */
+  --fg-muted:     rgba(14, 12, 34, 0.54);  /* clearly readable muted */
+  --fg-faint:     rgba(14, 12, 34, 0.34);  /* faint but still visible */
+
+  /* ── Border tokens ──────────────────────────────────────────────────── */
+  --border-base:   rgba(139, 92, 246, 0.20);
+  --border-subtle: rgba(139, 92, 246, 0.11);
+
+  /* ── Elevation tokens ───────────────────────────────────────────────── */
+  --shadow-card:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 8px 32px rgba(100, 60, 220, 0.10),
+    0 2px  6px rgba(100, 60, 220, 0.06);
+
+  /* ── Scrollbar ──────────────────────────────────────────────────────── */
+  --scrollbar-track: #EAE8F4;
+  --scrollbar-thumb: #C4BBEE;
+  --scrollbar-thumb-hover: #9F8EDC;
+
+  /* ── Mesh orb colours (brighter in light) ───────────────────────────── */
+  --mesh-a: rgba(0,   255, 204, 0.22);
+  --mesh-b: rgba(139,  92, 246, 0.18);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--fg-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.35s ease, color 0.25s ease;
+}
+
+/* Light mode — layered radial gradient body */
+html.light body {
+  background-color: transparent; /* mesh-bg handles the colour, body is the canvas */
+  background-image: none;
+}
+
+/* Fixed full-viewport gradient canvas for light mode — lives behind everything */
+html.light::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 80% 60% at  5%   5%, rgba(139, 92, 246, 0.14) 0%, transparent 55%),
+    radial-gradient(ellipse 65% 50% at 95%  90%, rgba(0,  255, 204, 0.16) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 80%  15%, rgba(255,179,  71, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 20%  80%, rgba(0,  200, 255, 0.08) 0%, transparent 55%),
+    linear-gradient(155deg, #F6F3FF 0%, #EDF9F5 40%, #FDF6EE 70%, #EEF2FF 100%);
+  pointer-events: none;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+/* ─── Animated mesh background ───────────────────────────────────────────── */
+@keyframes meshMove {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33%       { transform: translate(2%, 1%) rotate(1deg); }
+  66%       { transform: translate(-1%, 2%) rotate(-1deg); }
+}
+
+.mesh-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.mesh-bg::before {
+  content: "";
+  position: absolute;
+  width: 800px; height: 800px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--mesh-a) 0%, transparent 70%);
+  top: -200px; left: -200px;
+  animation: meshMove 20s ease-in-out infinite;
+}
+.mesh-bg::after {
+  content: "";
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--mesh-b) 0%, transparent 70%);
+  bottom: -100px; right: -100px;
+  animation: meshMove 25s ease-in-out infinite reverse;
+}
+
+/* Light mode — third amber orb on the container + enlarge existing orbs */
+html.light .mesh-bg {
+  background:
+    radial-gradient(ellipse 500px 400px at 75% 40%, rgba(255, 179, 71, 0.12) 0%, transparent 70%);
+}
+html.light .mesh-bg::before { width: 1100px; height: 1100px; }
+html.light .mesh-bg::after  { width: 900px;  height: 900px; }
+
+/* ─── Glass card ─────────────────────────────────────────────────────────── */
+.glass-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-base);
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Light mode — frosted glass card with gradient + violet-tinted shadow */
+html.light .glass-card {
+  background:
+    linear-gradient(145deg,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(243, 239, 255, 0.92) 100%
+    );
+  border-color: rgba(139, 92, 246, 0.22);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 1.0) inset,
+    0 0 0 1px rgba(139, 92, 246, 0.06) inset,
+    0 12px 40px rgba(100, 60, 220, 0.12),
+    0  4px 12px rgba(100, 60, 220, 0.08),
+    0  1px  3px rgba(0, 0, 0, 0.06);
+}
+
+/* Glass card header dividers — visible separator lines */
+html.light .glass-card [class*="border-white/5"],
+html.light .glass-card [class*="border-white/8"] {
+  border-color: rgba(139, 92, 246, 0.14) !important;
+}
+
+/* ─── Glow effects ───────────────────────────────────────────────────────── */
+.glow-mint   { box-shadow: 0 0 20px rgba(0, 255, 204, 0.15), 0 0 60px rgba(0, 255, 204, 0.05); }
+.glow-amber  { box-shadow: 0 0 20px rgba(255, 179, 71, 0.15), 0 0 60px rgba(255, 179, 71, 0.05); }
+.glow-violet { box-shadow: 0 0 20px rgba(139, 92, 246, 0.15), 0 0 60px rgba(139, 92, 246, 0.05); }
+
+/* Light mode — stronger, more visible glows */
+html.light .glow-mint   { box-shadow: 0 0 24px rgba(0, 255, 204, 0.30), 0 0 60px rgba(0, 255, 204, 0.12); }
+html.light .glow-amber  { box-shadow: 0 0 24px rgba(255, 179, 71, 0.30), 0 0 60px rgba(255, 179, 71, 0.12); }
+html.light .glow-violet { box-shadow: 0 0 24px rgba(139, 92, 246, 0.30), 0 0 60px rgba(139, 92, 246, 0.12); }
+
+/* ─── Misc animations ────────────────────────────────────────────────────── */
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(0, 255, 204, 0.3); }
+  33%       { border-color: rgba(255, 179, 71, 0.3); }
+  66%       { border-color: rgba(139, 92, 246, 0.3); }
+}
+.border-animated { animation: borderGlow 6s ease-in-out infinite; }
+
+@keyframes liquidRise {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+.liquid-fill { transform-origin: bottom; animation: liquidRise 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+@keyframes customBounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(4px); }
+}
+.animate-bounce-slow { animation: customBounce 2s ease-in-out infinite; }
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.count-animate { animation: countUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+/* ─── Input focus glow ───────────────────────────────────────────────────── */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.28);
+}
+html.light input:focus,
+html.light select:focus,
+html.light textarea:focus {
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18), 0 1px 4px rgba(0,0,0,0.06) !important;
+  border-color: rgba(139, 92, 246, 0.45) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LIGHT MODE OVERRIDES — attribute value substring selectors
+   (No CSS identifier escaping needed — works reliably with Tailwind v4)
+══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+html.light aside {
+  background: linear-gradient(170deg, #FFFFFF 0%, #EDE8FF 100%) !important;
+  border-right: 1px solid rgba(139, 92, 246, 0.22) !important;
+  box-shadow: 3px 0 32px rgba(139, 92, 246, 0.10) !important;
+}
+
+/* Sidebar nav items — inactive state needs visible contrast */
+html.light aside nav button {
+  color: rgba(14, 12, 34, 0.58) !important;
+}
+html.light aside nav button:hover {
+  color: rgba(14, 12, 34, 0.88) !important;
+  background: rgba(139, 92, 246, 0.08) !important;
+}
+
+/* ── Text colours — boosted contrast for light backgrounds ───────────────── */
+html.light [class~="text-white"]   { color: var(--fg-primary)          !important; }
+html.light [class*="text-white/1"] { color: rgba(14,12,34,0.36)        !important; }
+html.light [class*="text-white/2"] { color: rgba(14,12,34,0.44)        !important; }
+html.light [class*="text-white/3"] { color: rgba(14,12,34,0.56)        !important; }
+html.light [class*="text-white/4"] { color: rgba(14,12,34,0.66)        !important; }
+html.light [class*="text-white/5"] { color: rgba(14,12,34,0.75)        !important; }
+html.light [class*="text-white/6"] { color: rgba(14,12,34,0.82)        !important; }
+html.light [class*="text-white/7"] { color: rgba(14,12,34,0.88)        !important; }
+html.light [class*="text-white/8"] { color: rgba(14,12,34,0.92)        !important; }
+
+/* ── Surface backgrounds — visible tinted panels inside cards ────────────── */
+html.light [class*="bg-white/"] {
+  background: linear-gradient(135deg,
+    rgba(232, 228, 252, 0.60) 0%,
+    rgba(220, 215, 248, 0.45) 100%
+  ) !important;
+  border-color: rgba(139, 92, 246, 0.14) !important;
+}
+html.light [class*="hover:bg-white/"]:hover {
+  background: linear-gradient(135deg,
+    rgba(232, 228, 252, 0.80) 0%,
+    rgba(218, 212, 248, 0.65) 100%
+  ) !important;
+}
+
+/* ── Borders ─────────────────────────────────────────────────────────────── */
+html.light [class*="border-white/1"] { border-color: rgba(139,92,246,0.10) !important; }
+html.light [class*="border-white/2"] { border-color: rgba(139,92,246,0.13) !important; }
+html.light [class*="border-white/5"] { border-color: rgba(139,92,246,0.15) !important; }
+html.light [class*="border-white/8"] { border-color: rgba(139,92,246,0.18) !important; }
+html.light [class*="border-white/"]  { border-color: rgba(139,92,246,0.20) !important; }
+html.light [class*="border-dashed"]  { border-color: rgba(139,92,246,0.24) !important; }
+
+/* ── Dark surface remnants ───────────────────────────────────────────────── */
+html.light [class*="bg-[#1a1a1a]"],
+html.light [class*="bg-[#161616]"] {
+  background: linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(245,241,255,0.85) 100%) !important;
+  border-color: rgba(139,92,246,0.12) !important;
+}
+
+/* ── Backdrop / modal overlays ───────────────────────────────────────────── */
+html.light [class*="bg-black/"] { background-color: rgba(20,10,50,0.42) !important; }
+
+/* ── Input / textarea ────────────────────────────────────────────────────── */
+html.light input:not([type="range"]),
+html.light textarea,
+html.light select {
+  color: var(--fg-primary);
+  background: linear-gradient(145deg, #FFFFFF 0%, #FAF8FF 100%);
+  border-color: rgba(139, 92, 246, 0.18);
+  box-shadow: inset 0 1px 4px rgba(100, 60, 220, 0.05);
+}
+html.light input::placeholder,
+html.light textarea::placeholder { color: var(--fg-muted); }
+
+/* ── Font-mono (keys, refs, slugs) ───────────────────────────────────────── */
+html.light code,
+html.light [class*="font-mono"] { color: var(--fg-primary); }
+
+/* ── Active nav highlight in sidebar ─────────────────────────────────────── */
+html.light [class*="bg-[#00FFCC]/10"] {
+  background: linear-gradient(135deg,
+    rgba(0,255,204,0.14) 0%,
+    rgba(0,220,180,0.08) 100%
+  ) !important;
+}
+
+/* ── Accent-tinted badges + callout boxes ────────────────────────────────── */
+html.light [class*="bg-[#8B5CF6]/10"] {
+  background: linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(120,70,240,0.07) 100%) !important;
+}
+html.light [class*="bg-[#FFB347]/10"] {
+  background: linear-gradient(135deg, rgba(255,179,71,0.14) 0%, rgba(255,160,50,0.08) 100%) !important;
+}
+html.light [class*="bg-[#00FFCC]/15"],
+html.light [class*="bg-[#00FFCC]/20"] {
+  background: linear-gradient(135deg, rgba(0,255,204,0.18) 0%, rgba(0,220,185,0.10) 100%) !important;
+}
+
+/* ── Hover states on icon buttons ────────────────────────────────────────── */
+html.light [class*="hover:bg-[#00FFCC]"]:hover {
+  background: linear-gradient(135deg, rgba(0,255,204,0.18) 0%, rgba(0,220,180,0.12) 100%) !important;
+}
+html.light [class*="hover:bg-red"]:hover {
+  background-color: rgba(239,68,68,0.10) !important;
+}
+
+/* ── Inner list rows — gap + subtle card treatment ───────────────────────── */
+
+/* Remove the flush divide border and replace with spaced row cards */
+html.light .glass-card [class*="divide-y"] {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+}
+html.light .glass-card [class*="divide-y"] > * {
+  border-top: none !important;
+  border-radius: 14px;
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+html.light .glass-card [class*="divide-y"] > *:hover {
+  background: linear-gradient(135deg,
+    rgba(232, 228, 252, 0.70) 0%,
+    rgba(220, 215, 250, 0.50) 100%
+  ) !important;
+  box-shadow: 0 1px 6px rgba(100,60,220,0.07);
+}
+
+/* ── Selection ───────────────────────────────────────────────────────────── */
+html.light ::selection {
+  background: rgba(139, 92, 246, 0.22);
+  color: #12102A;
 }

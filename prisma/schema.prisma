@@ -1,0 +1,161 @@
+// Prisma schema for Fleeper
+// Connection URL is configured in prisma.config.ts (Prisma 7+)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String   @unique
+  handle        String   @unique
+  name          String?
+  avatar        String?
+  passwordHash  String
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  incomePools   IncomePool[]
+  transactions  Transaction[]
+  paymentLinks  PaymentLink[]
+  apiKeys       ApiKey[]
+}
+
+model IncomePool {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @db.Uuid
+  name             String
+  percentage       Decimal  @db.Decimal(5, 2)
+  bankAccountToken String?
+  bankLastFour     String?
+  bankName         String?
+  isActive         Boolean  @default(true)
+  order            Int      @default(0)
+  color            String   @default("#00FFCC")
+  createdAt        DateTime @default(now())
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  splits           TransactionSplit[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @db.Uuid
+  grossAmount     Int
+  platformFee     Int
+  netAmount       Int
+  currency        String   @default("USD")
+  status          String   @default("pending")
+  description     String?
+  customerEmail   String?
+  paymentRef      String?
+  stripePaymentId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id])
+  splits          TransactionSplit[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model TransactionSplit {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  transactionId String   @db.Uuid
+  poolId        String   @db.Uuid
+  amount        Int
+  payoutRef     String?
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  pool          IncomePool  @relation(fields: [poolId], references: [id])
+}
+
+model PaymentLink {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @db.Uuid
+  title       String
+  description String?
+  amount      Int?
+  isFlexible  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  slug        String   @unique
+  views       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model ApiKey {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid
+  name      String
+  keyHash   String   @unique
+  prefix    String
+  isActive  Boolean  @default(true)
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+// ── Admin Backend ───────────────────────────────────────────────
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  STAFF
+  READ_ONLY
+}
+
+model AdminUser {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         AdminRole @default(STAFF)
+  isActive     Boolean   @default(true)
+  createdById  String?   @db.Uuid
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  createdBy    AdminUser?  @relation("AdminCreatedBy", fields: [createdById], references: [id])
+  createdStaff AdminUser[] @relation("AdminCreatedBy")
+  auditLogs    AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model AuditLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId     String   @db.Uuid
+  action      String
+  resource    String
+  resourceId  String?
+  detail      Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  admin       AdminUser @relation(fields: [adminId], references: [id])
+
+  @@index([adminId])
+  @@index([resource])
+  @@index([createdAt])
+}
+
+model PlatformSettings {
+  id        String   @id @default("singleton")
+  data      Json
+  updatedAt DateTime @updatedAt
+}
