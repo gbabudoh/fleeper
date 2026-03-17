@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, ArrowRight, AlertCircle, Wallet, TrendingUp, Landmark, Zap } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, AlertCircle, Wallet, TrendingUp, Landmark, Zap, CheckCircle2, X } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,9 +12,28 @@ export default function LoginPage() {
   const [error, setError]               = useState<string | null>(null);
   const [email, setEmail]               = useState("");
   const [password, setPassword]         = useState("");
-  const [focused, setFocused]           = useState<string | null>(null);
+  const [focused,      setFocused]      = useState<string | null>(null);
+  const [forgotOpen,   setForgotOpen]   = useState(false);
+  const [forgotEmail,  setForgotEmail]  = useState("");
+  const [forgotSent,   setForgotSent]   = useState(false);
+  const [forgotLoading,setForgotLoading]= useState(false);
+  const [forgotError,  setForgotError]  = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleForgot = async (e: { preventDefault(): void }) => {
+    e.preventDefault();
+    setForgotLoading(true); setForgotError(null);
+    await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: forgotEmail }),
+    });
+    setForgotLoading(false);
+    setForgotSent(true);
+  };
+
+  const closeForgot = () => { setForgotOpen(false); setForgotSent(false); setForgotEmail(""); setForgotError(null); };
+
+  const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -127,6 +146,87 @@ export default function LoginPage() {
         </div>
       </div>
 
+      {/* ── Forgot password modal ── */}
+      {forgotOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: "rgba(14,12,34,0.40)", backdropFilter: "blur(6px)" }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeForgot(); }}>
+          <div className="relative w-full max-w-sm rounded-3xl overflow-hidden"
+            style={{
+              background: "rgba(255,255,255,0.97)",
+              border: "1px solid rgba(139,92,246,0.18)",
+              boxShadow: "0 2px 0 rgba(255,255,255,1) inset, 0 32px 80px rgba(100,60,220,0.20), 0 4px 16px rgba(0,0,0,0.08)",
+            }}>
+            <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #00FFCC, #8B5CF6, #FFB347)" }} />
+
+            <div className="p-7">
+              {/* Close button */}
+              <button onClick={closeForgot} className="absolute top-5 right-5 cursor-pointer p-1.5 rounded-lg transition-colors hover:bg-black/5"
+                style={{ color: "rgba(14,12,34,0.35)" }}>
+                <X size={16} />
+              </button>
+
+              {forgotSent ? (
+                /* Success */
+                <div className="text-center py-2">
+                  <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center"
+                    style={{ background: "rgba(0,212,168,0.10)", border: "1px solid rgba(0,212,168,0.22)" }}>
+                    <CheckCircle2 size={26} style={{ color: "#00A882" }} />
+                  </div>
+                  <h3 className="text-lg font-black text-[#0E0C22] mb-2">Check your inbox</h3>
+                  <p className="text-sm leading-relaxed mb-5" style={{ color: "rgba(14,12,34,0.50)" }}>
+                    If <strong>{forgotEmail}</strong> is registered, you&apos;ll receive a reset link shortly.
+                  </p>
+                  <button onClick={closeForgot}
+                    className="w-full py-3 rounded-2xl text-sm font-bold cursor-pointer transition-all hover:scale-[1.02]"
+                    style={{ background: "linear-gradient(135deg, #00FFCC, #00D4A8)", color: "#0A2E28", boxShadow: "0 4px 16px rgba(0,212,168,0.30)" }}>
+                    Done
+                  </button>
+                </div>
+              ) : (
+                /* Form */
+                <>
+                  <h3 className="text-xl font-black text-[#0E0C22] mb-1">Reset your password</h3>
+                  <p className="text-sm mb-6" style={{ color: "rgba(14,12,34,0.48)" }}>Enter your email and we&apos;ll send you a reset link.</p>
+
+                  {forgotError && (
+                    <div className="flex items-center gap-2 p-3 rounded-xl mb-4"
+                      style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.18)" }}>
+                      <AlertCircle size={13} className="text-red-400 shrink-0" />
+                      <p className="text-sm text-red-400">{forgotError}</p>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleForgot} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold mb-2" style={{ color: "rgba(14,12,34,0.55)" }}>Email address</label>
+                      <input
+                        type="email" required autoFocus
+                        value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200"
+                        style={{
+                          background: "rgba(245,243,255,0.80)",
+                          border: "1.5px solid rgba(139,92,246,0.20)",
+                          color: "#0E0C22",
+                        }}
+                      />
+                    </div>
+                    <button type="submit" disabled={forgotLoading}
+                      className="w-full flex items-center justify-center gap-2 font-bold py-3.5 rounded-2xl text-sm transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      style={{ background: "linear-gradient(135deg, #00FFCC, #00D4A8)", color: "#0A2E28", boxShadow: "0 4px 16px rgba(0,212,168,0.30)" }}>
+                      {forgotLoading
+                        ? <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: "rgba(10,46,40,0.25)", borderTopColor: "#0A2E28" }} />
+                        : "Send reset link"}
+                    </button>
+                  </form>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Right panel — form ── */}
       <div className="flex-1 flex items-center justify-center px-6 py-12 relative z-10">
         <div className="w-full max-w-md">
@@ -205,7 +305,7 @@ export default function LoginPage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-semibold" style={{ color: "rgba(14,12,34,0.55)" }}>Password</label>
-                    <a href="#" className="text-xs font-medium transition-colors" style={{ color: "#8B5CF6" }}>Forgot password?</a>
+                    <button type="button" onClick={() => setForgotOpen(true)} className="text-xs font-medium transition-colors cursor-pointer" style={{ color: "#8B5CF6" }}>Forgot password?</button>
                   </div>
                   <div className="relative">
                     <input

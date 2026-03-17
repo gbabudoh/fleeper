@@ -263,8 +263,10 @@ export default function LandingPage() {
         >
           <div className="flex items-center justify-between">
             {/* Logo */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/fleeper.png" alt="Fleeper" style={{ height: "28px", width: "auto" }} />
+            <Link href="/">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/fleeper.png" alt="Fleeper" style={{ height: "28px", width: "auto" }} />
+            </Link>
 
             {/* Links */}
             <div className="hidden md:flex items-center gap-6 text-sm font-medium" style={{ color: "rgba(14,12,34,0.50)" }}>
@@ -664,9 +666,9 @@ export default function LandingPage() {
           <img src="/fleeper.png" alt="Fleeper" style={{ height: "36px", width: "auto" }} />
           <p className="text-sm" style={{ color: "rgba(14,12,34,0.30)" }}>© 2026 Fleeper Ltd. All rights reserved.</p>
           <div className="flex gap-6 text-sm font-medium" style={{ color: "rgba(14,12,34,0.40)" }}>
-            <a href="#" className="hover:text-[#0E0C22] transition-colors">Privacy</a>
-            <a href="#" className="hover:text-[#0E0C22] transition-colors">Terms</a>
-            <a href="#" className="hover:text-[#0E0C22] transition-colors">Security</a>
+            <Link href="/privacy"  className="hover:text-[#0E0C22] transition-colors">Privacy</Link>
+            <Link href="/terms"    className="hover:text-[#0E0C22] transition-colors">Terms</Link>
+            <Link href="/security" className="hover:text-[#0E0C22] transition-colors">Security</Link>
           </div>
         </div>
       </footer>

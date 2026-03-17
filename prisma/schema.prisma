@@ -15,9 +15,11 @@ model User {
   name          String?
   avatar        String?
   passwordHash  String
-  isVerified    Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  isVerified        Boolean   @default(false)
+  resetToken        String?   @unique
+  resetTokenExpiry  DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   incomePools   IncomePool[]
   transactions  Transaction[]
