@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowRight, TrendingUp, Wallet, Landmark,
   CheckCircle2, Shield, BarChart2, ChevronDown, Sparkles, Zap,
+  Code2, Key, Globe, Webhook,
 } from "lucide-react";
 
 // ── Animated counter ──────────────────────────────────────────────────────────
@@ -123,8 +124,114 @@ function DemoCard() {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+// ── Dev code snippets ─────────────────────────────────────────────────────────
+
+type DevTab = "node" | "curl" | "python";
+
+const CODE: Record<DevTab, ReactNode> = {
+  node: (
+    <pre className="text-[13px] leading-relaxed font-mono whitespace-pre overflow-x-auto">
+      <span style={{ color: "#6C7A8A" }}>{"// npm install @fleeper/sdk\n"}</span>
+      <span style={{ color: "#00FFCC" }}>{"import"}</span>
+      <span style={{ color: "#E8E8F0" }}>{" Fleeper "}</span>
+      <span style={{ color: "#00FFCC" }}>{"from"}</span>
+      <span style={{ color: "#A8D8A8" }}>{" \"@fleeper/sdk\";\n\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"const fleeper = "}</span>
+      <span style={{ color: "#00FFCC" }}>{"new"}</span>
+      <span style={{ color: "#82C4F8" }}>{" Fleeper"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"("}</span>
+      <span style={{ color: "#A8D8A8" }}>{'"flp_live_sk_••••••••"'}</span>
+      <span style={{ color: "#E8E8F0" }}>{");\n\n"}</span>
+      <span style={{ color: "#00FFCC" }}>{"const"}</span>
+      <span style={{ color: "#82C4F8" }}>{" link"}</span>
+      <span style={{ color: "#E8E8F0" }}>{" = "}</span>
+      <span style={{ color: "#00FFCC" }}>{"await"}</span>
+      <span style={{ color: "#E8E8F0" }}>{" fleeper.links."}</span>
+      <span style={{ color: "#82C4F8" }}>{"create"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"({\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"  title: "}</span>
+      <span style={{ color: "#A8D8A8" }}>{'"Design Invoice #42"'}</span>
+      <span style={{ color: "#E8E8F0" }}>{",\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"  amount: "}</span>
+      <span style={{ color: "#F0A050" }}>{"150000"}</span>
+      <span style={{ color: "#6C7A8A" }}>{", // cents\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"  pools: [\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"    { label: "}</span>
+      <span style={{ color: "#A8D8A8" }}>{'"Revenue"'}</span>
+      <span style={{ color: "#E8E8F0" }}>{",   percent: "}</span>
+      <span style={{ color: "#F0A050" }}>{"70"}</span>
+      <span style={{ color: "#E8E8F0" }}>{" },\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"    { label: "}</span>
+      <span style={{ color: "#A8D8A8" }}>{'"Tax Vault"'}</span>
+      <span style={{ color: "#E8E8F0" }}>{", percent: "}</span>
+      <span style={{ color: "#F0A050" }}>{"20"}</span>
+      <span style={{ color: "#E8E8F0" }}>{" },\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"    { label: "}</span>
+      <span style={{ color: "#A8D8A8" }}>{'"Growth"'}</span>
+      <span style={{ color: "#E8E8F0" }}>{",    percent: "}</span>
+      <span style={{ color: "#F0A050" }}>{"10"}</span>
+      <span style={{ color: "#E8E8F0" }}>{" },\n  ],\n});\n\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"console."}</span>
+      <span style={{ color: "#82C4F8" }}>{"log"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"(link.url);\n"}</span>
+      <span style={{ color: "#6C7A8A" }}>{"// → https://fleeper.com/you/design-invoice-42"}</span>
+    </pre>
+  ),
+  curl: (
+    <pre className="text-[13px] leading-relaxed font-mono whitespace-pre overflow-x-auto">
+      <span style={{ color: "#82C4F8" }}>{"curl"}</span>
+      <span style={{ color: "#E8E8F0" }}>{" -X POST \\\n"}</span>
+      <span style={{ color: "#A8D8A8" }}>{'"https://api.fleeper.com/v1/links"'}</span>
+      <span style={{ color: "#E8E8F0" }}>{" \\\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"  -H "}</span>
+      <span style={{ color: "#A8D8A8" }}>{'"Authorization: Bearer flp_live_sk_••••••••"'}</span>
+      <span style={{ color: "#E8E8F0" }}>{" \\\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"  -H "}</span>
+      <span style={{ color: "#A8D8A8" }}>{'"Content-Type: application/json"'}</span>
+      <span style={{ color: "#E8E8F0" }}>{" \\\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"  -d "}</span>
+      <span style={{ color: "#A8D8A8" }}>{`'{\n    "title":  "Design Invoice #42",\n    "amount": 150000,\n    "pools": [\n      { "label": "Revenue",   "percent": 70 },\n      { "label": "Tax Vault", "percent": 20 },\n      { "label": "Growth",    "percent": 10 }\n    ]\n  }'`}</span>
+    </pre>
+  ),
+  python: (
+    <pre className="text-[13px] leading-relaxed font-mono whitespace-pre overflow-x-auto">
+      <span style={{ color: "#6C7A8A" }}>{"# pip install fleeper\n"}</span>
+      <span style={{ color: "#00FFCC" }}>{"import"}</span>
+      <span style={{ color: "#E8E8F0" }}>{" fleeper\n\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"client = fleeper."}</span>
+      <span style={{ color: "#82C4F8" }}>{"Client"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"("}</span>
+      <span style={{ color: "#A8D8A8" }}>{'"flp_live_sk_••••••••"'}</span>
+      <span style={{ color: "#E8E8F0" }}>{");\n\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"link = client.links."}</span>
+      <span style={{ color: "#82C4F8" }}>{"create"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"(\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"    title="}</span>
+      <span style={{ color: "#A8D8A8" }}>{'"Design Invoice #42"'}</span>
+      <span style={{ color: "#E8E8F0" }}>{",\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"    amount="}</span>
+      <span style={{ color: "#F0A050" }}>{"150_000"}</span>
+      <span style={{ color: "#E8E8F0" }}>{",\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"    pools=[\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{'        {"label": "Revenue",   "percent": '}</span>
+      <span style={{ color: "#F0A050" }}>{"70"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"},\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{'        {"label": "Tax Vault", "percent": '}</span>
+      <span style={{ color: "#F0A050" }}>{"20"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"},\n"}</span>
+      <span style={{ color: "#E8E8F0" }}>{'        {"label": "Growth",    "percent": '}</span>
+      <span style={{ color: "#F0A050" }}>{"10"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"},\n    ],\n)\n\n"}</span>
+      <span style={{ color: "#82C4F8" }}>{"print"}</span>
+      <span style={{ color: "#E8E8F0" }}>{"(link.url)\n"}</span>
+      <span style={{ color: "#6C7A8A" }}>{"# → https://fleeper.com/you/design-invoice-42"}</span>
+    </pre>
+  ),
+};
+
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  const [devTab, setDevTab] = useState<DevTab>("node");
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -370,6 +477,161 @@ export default function LandingPage() {
               </Link>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── Developers ── */}
+      <section id="developers" className="relative z-10 max-w-6xl mx-auto px-6 py-24">
+        <div className="text-center mb-16">
+          <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#00A882" }}>Developers</p>
+          <h2 className="text-4xl font-black tracking-tight text-[#0E0C22] mb-4">Built for builders</h2>
+          <p className="max-w-xl mx-auto" style={{ color: "rgba(14,12,34,0.50)" }}>
+            Full REST API, real-time webhooks, and SDKs. Embed Fleeper&apos;s intelligent routing into your product in minutes.
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-10 items-start">
+
+          {/* Left — feature cards */}
+          <div className="space-y-4">
+            {[
+              {
+                icon: Code2,
+                color: "#00D4A8",
+                glow: "rgba(0,212,168,0.10)",
+                title: "REST API",
+                desc: "Every Fleeper action is available over HTTPS. Idempotent endpoints, versioned routes, and predictable JSON responses you can rely on.",
+              },
+              {
+                icon: Webhook,
+                color: "#8B5CF6",
+                glow: "rgba(139,92,246,0.10)",
+                title: "Webhooks",
+                desc: "Subscribe to payment.received, split.completed, pool.updated, and more. We retry with exponential backoff so you never miss an event.",
+              },
+              {
+                icon: Globe,
+                color: "#E8920A",
+                glow: "rgba(232,146,10,0.10)",
+                title: "SDKs",
+                desc: "Official clients for Node.js, Python, and Go. Type-safe, zero-dependency, and fully documented with inline examples.",
+              },
+              {
+                icon: Key,
+                color: "#00A882",
+                glow: "rgba(0,168,130,0.10)",
+                title: "Scoped API keys",
+                desc: "Generate keys with fine-grained permissions (read / write / webhook) straight from your dashboard. Rotate or revoke in one click.",
+              },
+            ].map(({ icon: Icon, color, glow, title, desc }) => (
+              <div key={title}
+                className="group flex gap-5 p-6 rounded-2xl transition-all hover:scale-[1.01] duration-300"
+                style={{ background: "rgba(255,255,255,0.75)", backdropFilter: "blur(20px)", border: "1px solid rgba(139,92,246,0.10)", boxShadow: "0 4px 20px rgba(100,60,220,0.05)" }}>
+                <div className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm transition-shadow group-hover:shadow-lg"
+                  style={{ background: `radial-gradient(circle at 30% 30%, ${color}, ${color}CC)`, boxShadow: `0 4px 14px ${color}40` }}>
+                  <Icon size={18} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#0E0C22] mb-1">{title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: "rgba(14,12,34,0.52)" }}>{desc}</p>
+                </div>
+                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                  style={{ background: `radial-gradient(ellipse at 0% 50%, ${glow}, transparent 70%)` }} />
+              </div>
+            ))}
+
+            {/* Docs CTA */}
+            <div className="flex items-center gap-4 mt-2 px-2">
+              <a href="#"
+                className="inline-flex items-center gap-2 text-sm font-bold transition-all hover:gap-3"
+                style={{ color: "#00A882" }}>
+                Read the docs <ArrowRight size={15} />
+              </a>
+              <span style={{ color: "rgba(14,12,34,0.15)" }}>·</span>
+              <a href="#"
+                className="inline-flex items-center gap-2 text-sm font-medium transition-all"
+                style={{ color: "rgba(14,12,34,0.40)" }}>
+                API reference
+              </a>
+              <span style={{ color: "rgba(14,12,34,0.15)" }}>·</span>
+              <a href="#"
+                className="inline-flex items-center gap-2 text-sm font-medium transition-all"
+                style={{ color: "rgba(14,12,34,0.40)" }}>
+                Changelog
+              </a>
+            </div>
+          </div>
+
+          {/* Right — code block */}
+          <div className="relative">
+            {/* Glow behind editor */}
+            <div className="absolute -inset-6 rounded-3xl pointer-events-none" style={{ background: "radial-gradient(ellipse at 50% 40%, rgba(0,255,204,0.12) 0%, transparent 70%)" }} />
+
+            <div className="relative rounded-2xl overflow-hidden"
+              style={{ background: "linear-gradient(160deg, #0E0C22 0%, #12102A 100%)", border: "1px solid rgba(255,255,255,0.07)", boxShadow: "0 24px 64px rgba(14,12,34,0.28), 0 1px 0 rgba(255,255,255,0.05) inset" }}>
+
+              {/* Traffic lights + title */}
+              <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full" style={{ background: "#FF5F57" }} />
+                  <div className="w-3 h-3 rounded-full" style={{ background: "#FFBD2E" }} />
+                  <div className="w-3 h-3 rounded-full" style={{ background: "#28C840" }} />
+                </div>
+                <span className="text-xs font-mono mx-auto" style={{ color: "rgba(255,255,255,0.25)" }}>fleeper-quickstart</span>
+              </div>
+
+              {/* Language tabs */}
+              <div className="flex gap-1 px-5 pt-4 pb-0">
+                {(["node", "curl", "python"] as DevTab[]).map((tab) => (
+                  <button key={tab} onClick={() => setDevTab(tab)}
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all cursor-pointer"
+                    style={devTab === tab
+                      ? { background: "rgba(0,255,204,0.12)", color: "#00FFCC", border: "1px solid rgba(0,255,204,0.20)" }
+                      : { background: "transparent", color: "rgba(255,255,255,0.30)", border: "1px solid transparent" }}>
+                    {tab === "node" ? "Node.js" : tab === "curl" ? "cURL" : "Python"}
+                  </button>
+                ))}
+              </div>
+
+              {/* Code */}
+              <div className="p-5 pt-4">
+                {CODE[devTab]}
+              </div>
+
+              {/* Response preview */}
+              <div className="mx-5 mb-5 p-4 rounded-xl" style={{ background: "rgba(0,255,204,0.05)", border: "1px solid rgba(0,255,204,0.12)" }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-[#00FFCC] animate-pulse" />
+                  <span className="text-[11px] font-bold font-mono" style={{ color: "#00FFCC" }}>200 OK · 142ms</span>
+                </div>
+                <pre className="text-[12px] font-mono leading-relaxed" style={{ color: "rgba(255,255,255,0.50)" }}>
+                  {`{
+  "id":     "lnk_01J8...",
+  "url":    "https://fleeper.com/you/design-invoice-42",
+  "status": "active",
+  "pools":  3
+}`}
+                </pre>
+              </div>
+            </div>
+
+            {/* Webhook event card — floating below */}
+            <div className="mt-4 p-4 rounded-2xl flex items-start gap-3"
+              style={{ background: "rgba(255,255,255,0.80)", backdropFilter: "blur(20px)", border: "1px solid rgba(139,92,246,0.12)", boxShadow: "0 4px 20px rgba(100,60,220,0.07)" }}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "rgba(139,92,246,0.10)", border: "1px solid rgba(139,92,246,0.20)" }}>
+                <Zap size={14} style={{ color: "#8B5CF6" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-0.5">
+                  <p className="text-sm font-bold text-[#0E0C22]">payment.received</p>
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: "rgba(0,212,168,0.10)", color: "#00A882" }}>just now</span>
+                </div>
+                <p className="text-xs font-mono truncate" style={{ color: "rgba(14,12,34,0.40)" }}>{"{ amount: 150000, split: \"70/20/10\", status: \"routed\" }"}</p>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 
