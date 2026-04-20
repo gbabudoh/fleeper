@@ -11,7 +11,8 @@
  * 4. Execute Stripe Transfers to move money to each external bank account.
  * 5. Update split statuses and log everything.
  */
-import { calculateFleepSplit } from "./split-engine";
+import { Prisma, IncomePool } from "@prisma/client";
+import { calculateFleepSplit, PoolRule } from "./split-engine";
 import { logTransaction } from "./logger";
 
 // These imports are dynamic to avoid errors when DB/Stripe are not configured
@@ -32,6 +33,11 @@ export interface FleepStreamPayload {
   currency: string;
   description?: string;
   customerEmail?: string;
+  paymentLinkId?: string;
+}
+
+interface SellerStripeAccount {
+  stripeAccountId: string | null;
 }
 
 export async function executeFleepStream(payload: FleepStreamPayload) {
@@ -45,6 +51,7 @@ export async function executeFleepStream(payload: FleepStreamPayload) {
     currency,
     description,
     customerEmail,
+    paymentLinkId,
   } = payload;
 
   logTransaction("fleep_stream.started", {
@@ -53,7 +60,17 @@ export async function executeFleepStream(payload: FleepStreamPayload) {
     grossAmountCents,
   });
 
-  // 1. Load seller's active pools
+  // 1. Load seller and active pools
+  const user = await (db.user as unknown as {
+    findUnique: (args: {
+      where: { id: string };
+      select: { stripeAccountId: boolean };
+    }) => Promise<SellerStripeAccount | null>;
+  }).findUnique({
+    where: { id: sellerId },
+    select: { stripeAccountId: true }
+  });
+
   const pools = await db.incomePool.findMany({
     where: { userId: sellerId, isActive: true },
     orderBy: { order: "asc" },
@@ -63,15 +80,46 @@ export async function executeFleepStream(payload: FleepStreamPayload) {
     throw new Error(`Seller ${sellerId} has no active income pools`);
   }
 
-  // 2. Calculate split
-  const poolRules = pools.map((p: { id: string; name: string; percentage: { toNumber: () => number } | number; color: string; bankName: string | null; bankLastFour: string | null }) => ({
-    id: p.id,
-    name: p.name,
-    percentage: typeof p.percentage === "object" ? p.percentage.toNumber() : Number(p.percentage),
-    color: p.color,
-    bankName: p.bankName ?? undefined,
-    bankLastFour: p.bankLastFour ?? undefined,
-  }));
+  // 1.5 Handle custom splits from PaymentLink if provided
+  let poolRules: PoolRule[] = [];
+  let linkCustomSplits: { label: string; percent: number }[] | null = null;
+
+  if (paymentLinkId) {
+    const link = await db.paymentLink.findUnique({
+      where: { id: paymentLinkId },
+    });
+    if (link && link.customSplits) {
+      linkCustomSplits = link.customSplits as { label: string; percent: number }[];
+    }
+  }
+
+  if (linkCustomSplits && Array.isArray(linkCustomSplits)) {
+    // If custom splits are provided, map them to the user's existing pools by label
+    // or just use them as virtual rules (advanced logic: using existing pool bank tokens if labels match)
+    poolRules = linkCustomSplits.map((split) => {
+      // Find matching pool by name to get real bank details
+      const matchedPool = pools.find((p) => p.name.toLowerCase() === split.label.toLowerCase());
+
+      return {
+        id: matchedPool?.id || `virtual-${split.label}`, // fallback ID for tracking
+        name: split.label,
+        percentage: Number(split.percent),
+        color: matchedPool?.color || "#8B5CF6",
+        bankName: matchedPool?.bankName ?? undefined,
+        bankLastFour: matchedPool?.bankLastFour ?? undefined,
+      };
+    });
+  } else {
+    // Default logic: use all active pools
+    poolRules = pools.map((p: IncomePool) => ({
+      id: p.id,
+      name: p.name,
+      percentage: Number(p.percentage),
+      color: p.color,
+      bankName: p.bankName ?? undefined,
+      bankLastFour: p.bankLastFour ?? undefined,
+    }));
+  }
 
   const splitResult = calculateFleepSplit(grossAmountCents, poolRules);
 
@@ -84,8 +132,7 @@ export async function executeFleepStream(payload: FleepStreamPayload) {
   });
 
   // 3. Write transaction + splits atomically to DB
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const transaction = await db.$transaction(async (tx: any) => {
+  const transaction = await db.$transaction(async (tx: Prisma.TransactionClient) => {
     const mainTx = await tx.transaction.create({
       data: {
         userId: sellerId,
@@ -97,6 +144,7 @@ export async function executeFleepStream(payload: FleepStreamPayload) {
         description,
         customerEmail,
         stripePaymentId: stripePaymentIntentId,
+        linkId: paymentLinkId ?? null,
       },
     });
 
@@ -138,6 +186,31 @@ export async function executeFleepStream(payload: FleepStreamPayload) {
       destination: t.externalAccountId,
     })),
   });
+
+  // 4.5 Actually execute the transfers via Stripe
+  if (user?.stripeAccountId) {
+    try {
+      const transferResults = await executeSplitTransfers(
+        user.stripeAccountId as string,
+        currency,
+        transferPayloads
+      );
+      logTransaction("fleep_stream.transfers_executed", {
+        transactionId: transaction.id,
+        results: transferResults,
+      });
+    } catch (err) {
+      logTransaction("fleep_stream.transfers_failed", {
+        transactionId: transaction.id,
+        error: String(err),
+      });
+    }
+  } else {
+    logTransaction("fleep_stream.transfers_skipped", {
+      transactionId: transaction.id,
+      reason: "No stripeAccountId found for seller",
+    });
+  }
 
   // Mark transaction as succeeded
   await db.transaction.update({

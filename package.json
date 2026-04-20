@@ -2,6 +2,9 @@
   "name": "fleeper",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -43,6 +46,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.8.0",
+    "resend": "^6.12.2",
     "stripe": "^20.4.1",
     "tailwind-merge": "^3.5.0",
     "upstash": "^0.0.1",

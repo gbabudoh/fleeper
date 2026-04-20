@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
           currency: pi.currency,
           description: pi.description ?? pi.metadata?.description,
           customerEmail: pi.receipt_email ?? pi.metadata?.customer_email,
+          paymentLinkId: pi.metadata?.payment_link_id,
         });
 
         break;

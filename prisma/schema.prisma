@@ -20,6 +20,7 @@ model User {
   resetTokenExpiry  DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+  stripeAccountId   String?   @unique
 
   incomePools   IncomePool[]
   transactions  Transaction[]
@@ -63,9 +64,12 @@ model Transaction {
 
   user            User     @relation(fields: [userId], references: [id])
   splits          TransactionSplit[]
+  linkId          String?  @db.Uuid
+  link            PaymentLink? @relation(fields: [linkId], references: [id])
 
   @@index([userId])
   @@index([status])
+  @@index([linkId])
 }
 
 model TransactionSplit {
@@ -94,6 +98,8 @@ model PaymentLink {
   createdAt   DateTime @default(now())
 
   user        User     @relation(fields: [userId], references: [id])
+  customSplits Json?   // [{ label: string, percentage: number }]
+  transactions Transaction[]
 }
 
 model ApiKey {

@@ -1,0 +1,20 @@
+{
+  "name": "@fleeper/sdk",
+  "version": "0.1.0",
+  "description": "The official Node.js and TypeScript SDK for Fleeper",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.2",
+    "typescript": "^5.0.0"
+  }
+}

@@ -22,6 +22,7 @@ const CreateCheckoutSchema = z.object({
   description: z.string().max(500).optional(),
   customerEmail: z.string().email().optional(),
   serviceId: z.string().optional(),
+  paymentLinkId: z.string().uuid().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
     description,
     customerEmail,
     serviceId,
+    paymentLinkId,
   } = parsed.data;
 
   try {
@@ -79,6 +81,7 @@ export async function POST(req: NextRequest) {
         service_id: serviceId ?? "",
         description: description ?? "",
         customer_email: customerEmail ?? "",
+        payment_link_id: paymentLinkId ?? "",
         platform: "fleeper",
       },
     });
