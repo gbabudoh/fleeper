@@ -234,7 +234,7 @@ export default function DashboardPage() {
 
   const copyLink = () => {
     if (!data) return;
-    navigator.clipboard.writeText(`https://fleeper.com/${data.handle}`);
+    navigator.clipboard.writeText(`${window.location.origin}/${data.handle}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

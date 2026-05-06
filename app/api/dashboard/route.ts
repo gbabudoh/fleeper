@@ -60,8 +60,8 @@ export async function GET() {
     balance: p.splits.reduce((sum, s) => sum + s.amount, 0),
   }));
 
-  // Growth pool total (for "auto-saved" stat)
-  const growthPool = poolsWithBalance.find((p) => p.name === "Growth Pool");
+  // Total distributed across all pools (sum of all settled splits)
+  const totalDistributed = poolsWithBalance.reduce((sum, p) => sum + p.balance, 0);
 
   return NextResponse.json({
     pools: poolsWithBalance,
@@ -71,7 +71,7 @@ export async function GET() {
       totalFees:  stats._sum.platformFee ?? 0,
       totalCount: stats._count.id,
       monthCount,
-      autoSaved:  growthPool?.balance ?? 0,
+      autoSaved:  totalDistributed,
     },
     recent,
     handle: session.user.handle,
