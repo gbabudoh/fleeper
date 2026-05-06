@@ -34,16 +34,13 @@ const COLORS = [
   { hex: "#10B981", label: "Green"  },
 ];
 
-const POOL_ICONS: Record<string, React.ElementType> = {
-  "Main Spend":  Wallet,
-  "Tax Vault":   Landmark,
-  "Growth Pool": TrendingUp,
-};
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getIcon(name: string) {
-  return POOL_ICONS[name] ?? Wallet;
+function getIcon(name: string): React.ElementType {
+  const n = name.toLowerCase();
+  if (n.includes("tax") || n.includes("hmrc") || n.includes("irs"))                                   return Landmark;
+  if (n.includes("profit") || n.includes("growth") || n.includes("saving") || n.includes("invest"))   return TrendingUp;
+  return Wallet;
 }
 
 function totalPct(pools: Pool[]) {

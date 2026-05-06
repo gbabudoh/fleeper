@@ -32,13 +32,14 @@ interface DashData {
   name: string | null;
 }
 
-// ── Pool icon map ─────────────────────────────────────────────────────────────
+// ── Pool icon — inferred from name keywords ───────────────────────────────────
 
-const POOL_ICONS: Record<string, React.ElementType> = {
-  "Main Spend":  Wallet,
-  "Tax Vault":   Landmark,
-  "Growth Pool": TrendingUp,
-};
+function poolIcon(name: string): React.ElementType {
+  const n = name.toLowerCase();
+  if (n.includes("tax") || n.includes("hmrc") || n.includes("irs"))   return Landmark;
+  if (n.includes("profit") || n.includes("growth") || n.includes("saving") || n.includes("invest")) return TrendingUp;
+  return Wallet;
+}
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ function StatCard({ label, value, sub, color, icon: Icon }: {
 // ── Pool Card ─────────────────────────────────────────────────────────────────
 
 function PoolCard({ pool, totalBalance }: { pool: Pool; totalBalance: number }) {
-  const Icon = POOL_ICONS[pool.name] ?? Wallet;
+  const Icon = poolIcon(pool.name);
   const pct  = totalBalance > 0 ? (pool.balance / totalBalance) * 100 : 0;
 
   return (
@@ -266,7 +267,7 @@ export default function DashboardPage() {
               {/* Profile link chip */}
               <div className="flex items-center gap-2 px-3.5 py-2.5 glass-card text-sm text-white/45 min-w-0 cursor-default">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#00FFCC] animate-pulse shrink-0" />
-                <span className="truncate text-xs font-mono">fleeper.com/{data.handle}</span>
+                <span className="truncate text-xs font-mono">{window.location.hostname}/{data.handle}</span>
                 <button
                   onClick={copyLink}
                   className="text-white/25 hover:text-[#00FFCC] transition-colors shrink-0 cursor-pointer"
@@ -331,7 +332,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard label="Total Earned"  value={formatCurrency(data.stats.totalGross)} sub="all time"        color="#00FFCC" icon={DollarSign} />
               <StatCard label="Net to Pools"  value={formatCurrency(data.stats.totalNet)}   sub="after fees"      color="#8B5CF6" icon={TrendingUp} />
-              <StatCard label="Auto-Saved"    value={formatCurrency(data.stats.autoSaved)}  sub="growth pool"     color="#FFB347" icon={Percent}    />
+              <StatCard label="Auto-Saved"    value={formatCurrency(data.stats.autoSaved)}  sub="total distributed" color="#FFB347" icon={Percent}    />
               <StatCard label="This Month"    value={String(data.stats.monthCount)}          sub="transactions"    color="#00FFCC" icon={Zap}        />
             </div>
 
