@@ -16,8 +16,13 @@ export interface FleepSession {
   user?: SessionUser;
 }
 
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  throw new Error("SESSION_SECRET environment variable is not set");
+}
+
 export const SESSION_OPTIONS: SessionOptions = {
-  password: process.env.SESSION_SECRET || "fleeper-dev-secret-change-in-production-32chars",
+  password: sessionSecret,
   cookieName: "fleeper_session",
   cookieOptions: {
     secure: process.env.NODE_ENV === "production",

@@ -7,25 +7,30 @@
  * 3. Register the external bank account on the seller's Stripe Connected Account.
  * 4. Save pool metadata (bankName, bankLastFour, bankAccountToken) to the DB.
  *
- * Body: { userId, poolId, publicToken, accountId, accountName, accountMask }
+ * Body: { poolId, publicToken, accountId, accountName, accountMask }
+ * Auth: session cookie (userId and stripeAccountId resolved server-side)
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { exchangeForProcessorToken } from "@/lib/plaid";
 import { stripe } from "@/lib/stripe";
+import { getSession } from "@/lib/session";
 import { logger } from "@/lib/logger";
 
 const ExchangeSchema = z.object({
-  userId: z.string().min(1),
   poolId: z.string().min(1),
   publicToken: z.string().min(1),
   accountId: z.string().min(1),
   accountName: z.string(),
   accountMask: z.string(),
-  sellerConnectedAccountId: z.string().min(1),
 });
 
 export async function POST(req: NextRequest) {
+  const session = await getSession();
+  if (!session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -38,17 +43,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request", issues: parsed.error.issues }, { status: 400 });
   }
 
-  const { userId, poolId, publicToken, accountId, accountName, accountMask, sellerConnectedAccountId } = parsed.data;
+  const { poolId, publicToken, accountId, accountName, accountMask } = parsed.data;
+  const userId = session.user.id;
+
+  const { prisma } = await import("@/lib/db");
+
+  // Verify the pool belongs to the authenticated user
+  const pool = await prisma.incomePool.findFirst({
+    where: { id: poolId, userId },
+  });
+  if (!pool) {
+    return NextResponse.json({ error: "Pool not found" }, { status: 404 });
+  }
+
+  // Resolve the seller's Stripe Connected Account from the DB
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { stripeAccountId: true },
+  });
 
   try {
-    // Step 1+2: Exchange public_token → Stripe processor token
     const { processorToken } = await exchangeForProcessorToken(publicToken, accountId);
 
-    // Step 3: Register bank account on Stripe Connected Account
     let stripeExternalAccountId = "pending";
-    if (stripe) {
+    if (stripe && user?.stripeAccountId) {
       const externalAccount = await stripe.accounts.createExternalAccount(
-        sellerConnectedAccountId,
+        user.stripeAccountId,
         {
           external_account: processorToken,
           metadata: { pool_id: poolId, plaid_account_name: accountName },
@@ -57,8 +77,6 @@ export async function POST(req: NextRequest) {
       stripeExternalAccountId = externalAccount.id;
     }
 
-    // Step 4: Update pool in DB
-    const { prisma } = await import("@/lib/db");
     await prisma.incomePool.update({
       where: { id: poolId },
       data: {

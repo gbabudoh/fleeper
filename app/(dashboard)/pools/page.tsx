@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Wallet, Landmark, TrendingUp, Plus, Pencil, Trash2,
   Check, X, AlertCircle, GripVertical, ToggleLeft, ToggleRight,
-  Link2, Loader2, Info,
+  Link2, Loader2, Info, ExternalLink,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { usePlaidLink } from "@/hooks/usePlaidLink";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -320,6 +321,87 @@ function AddModal({
   );
 }
 
+// ── Plaid bank linker ─────────────────────────────────────────────────────────
+
+function PlaidLinker({
+  poolId,
+  onSuccess,
+  onCancel,
+}: {
+  poolId: string;
+  onSuccess: (bankName: string, bankLastFour: string) => void;
+  onCancel: () => void;
+}) {
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/plaid/link-token?poolId=${poolId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.linkToken) setLinkToken(d.linkToken);
+        else setError(d.error ?? "Failed to initialize bank link");
+      })
+      .catch(() => setError("Network error — try again"));
+  }, [poolId]);
+
+  const handleSuccess = useCallback(
+    async (publicToken: string, metadata: { account: { id: string; name: string; mask: string } }) => {
+      const res = await fetch("/api/plaid/exchange", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          poolId,
+          publicToken,
+          accountId: metadata.account.id,
+          accountName: metadata.account.name,
+          accountMask: metadata.account.mask,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Bank linking failed"); return; }
+      onSuccess(data.bankName, data.bankLastFour);
+    },
+    [poolId, onSuccess]
+  );
+
+  const { open, ready } = usePlaidLink({
+    token: linkToken ?? "",
+    onSuccess: handleSuccess,
+    onExit: onCancel,
+  });
+
+  // Auto-open as soon as the handler is ready
+  useEffect(() => {
+    if (ready) open();
+  }, [ready, open]);
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-xl" onClick={onCancel} />
+        <div className="relative z-10 glass-card w-full max-w-sm p-7 text-center">
+          <AlertCircle size={32} className="text-red-400 mx-auto mb-3" />
+          <p className="text-sm text-white/70 mb-4">{error}</p>
+          <button onClick={onCancel} className="cursor-pointer px-5 py-2.5 rounded-xl bg-white/10 text-sm font-medium hover:bg-white/20 transition-all">
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-xl" />
+      <div className="relative z-10 flex flex-col items-center gap-3">
+        <Loader2 size={32} className="text-[#00FFCC] animate-spin" />
+        <p className="text-sm text-white/50">Opening bank link…</p>
+      </div>
+    </div>
+  );
+}
+
 // ── Pool card ─────────────────────────────────────────────────────────────────
 
 function PoolCard({
@@ -331,6 +413,7 @@ function PoolCard({
   onDragStart,
   onDragOver,
   onDrop,
+  onLinkBank,
 }: {
   pool: Pool;
   allPools: Pool[];
@@ -340,6 +423,7 @@ function PoolCard({
   onDragStart: (id: string) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (id: string) => void;
+  onLinkBank: (id: string) => void;
 }) {
   const Icon = getIcon(pool.name);
   const total = allPools.reduce((s, p) => s + p.balance, 0);
@@ -403,17 +487,32 @@ function PoolCard({
       </p>
 
       {/* Bank */}
-      <div className="flex items-center gap-1.5 mb-4">
-        {pool.bankName ? (
-          <>
-            <Link2 size={11} style={{ color: pool.color }} />
-            <p className="text-xs" style={{ color: `${pool.color}80` }}>
-              {pool.bankName} ...{pool.bankLastFour}
-            </p>
-          </>
-        ) : (
-          <p className="text-xs text-white/25 italic">No bank linked</p>
-        )}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-1.5">
+          {pool.bankName ? (
+            <>
+              <Link2 size={11} style={{ color: pool.color }} />
+              <p className="text-xs" style={{ color: `${pool.color}80` }}>
+                {pool.bankName} ...{pool.bankLastFour}
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-white/25 italic">No bank linked</p>
+          )}
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onLinkBank(pool.id); }}
+          className="cursor-pointer flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all hover:scale-105 active:scale-95"
+          style={{
+            color: pool.color,
+            borderColor: `${pool.color}30`,
+            background: `${pool.color}08`,
+          }}
+          title={pool.bankName ? "Change linked bank" : "Link bank account"}
+        >
+          <ExternalLink size={9} />
+          {pool.bankName ? "Change" : "Link bank"}
+        </button>
       </div>
 
       {/* Progress */}
@@ -485,12 +584,13 @@ function SplitMeter({ pools }: { pools: Pool[] }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function PoolsPage() {
-  const [pools, setPools]       = useState<Pool[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [editPool, setEditPool] = useState<Pool | null>(null);
-  const [showAdd, setShowAdd]   = useState(false);
-  const [dragId, setDragId]     = useState<string | null>(null);
-  const [toast, setToast]       = useState<string | null>(null);
+  const [pools, setPools]             = useState<Pool[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [editPool, setEditPool]       = useState<Pool | null>(null);
+  const [showAdd, setShowAdd]         = useState(false);
+  const [dragId, setDragId]           = useState<string | null>(null);
+  const [toast, setToast]             = useState<string | null>(null);
+  const [linkingPoolId, setLinkingPoolId] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -628,6 +728,7 @@ export default function PoolsPage() {
                   onDragStart={setDragId}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={handleDrop}
+                  onLinkBank={setLinkingPoolId}
                 />
               ))}
 
@@ -665,6 +766,19 @@ export default function PoolsPage() {
           allPools={pools}
           onAdd={handleAdd}
           onClose={() => setShowAdd(false)}
+        />
+      )}
+      {linkingPoolId && (
+        <PlaidLinker
+          poolId={linkingPoolId}
+          onSuccess={(bankName, bankLastFour) => {
+            setPools((prev) =>
+              prev.map((p) => p.id === linkingPoolId ? { ...p, bankName, bankLastFour } : p)
+            );
+            setLinkingPoolId(null);
+            showToast(`Bank account linked: ${bankName} ...${bankLastFour}`);
+          }}
+          onCancel={() => setLinkingPoolId(null)}
         />
       )}
 

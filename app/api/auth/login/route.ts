@@ -3,13 +3,20 @@ import { z } from "zod";
 import { createHash } from "node:crypto";
 import { getSession } from "@/lib/session";
 import { logger } from "@/lib/logger";
+import { rateLimit, getIp } from "@/lib/rate-limit";
 
 const LoginSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(1),
 });
 
 export async function POST(req: NextRequest) {
+  // 5 attempts per IP per minute
+  const rl = rateLimit("login", getIp(req), { limit: 5, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many login attempts — try again in a minute" }, { status: 429 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();

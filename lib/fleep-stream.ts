@@ -14,6 +14,7 @@
 import { Prisma, IncomePool } from "@prisma/client";
 import { calculateFleepSplit, PoolRule } from "./split-engine";
 import { logTransaction } from "./logger";
+import { sendPaymentReceiptEmail } from "./email";
 
 // These imports are dynamic to avoid errors when DB/Stripe are not configured
 async function getDb() {
@@ -36,9 +37,6 @@ export interface FleepStreamPayload {
   paymentLinkId?: string;
 }
 
-interface SellerStripeAccount {
-  stripeAccountId: string | null;
-}
 
 export async function executeFleepStream(payload: FleepStreamPayload) {
   const db = await getDb();
@@ -60,15 +58,23 @@ export async function executeFleepStream(payload: FleepStreamPayload) {
     grossAmountCents,
   });
 
+  // Idempotency guard — Stripe may retry webhooks; skip if already processed
+  const existing = await db.transaction.findFirst({
+    where: { stripePaymentId: stripePaymentIntentId },
+    select: { id: true },
+  });
+  if (existing) {
+    logTransaction("fleep_stream.duplicate_skipped", {
+      stripePaymentIntentId,
+      existingTransactionId: existing.id,
+    });
+    return { transactionId: existing.id, splits: [] };
+  }
+
   // 1. Load seller and active pools
-  const user = await (db.user as unknown as {
-    findUnique: (args: {
-      where: { id: string };
-      select: { stripeAccountId: boolean };
-    }) => Promise<SellerStripeAccount | null>;
-  }).findUnique({
+  const user = await db.user.findUnique({
     where: { id: sellerId },
-    select: { stripeAccountId: true }
+    select: { stripeAccountId: true, email: true, name: true },
   });
 
   const pools = await db.incomePool.findMany({
@@ -228,6 +234,27 @@ export async function executeFleepStream(payload: FleepStreamPayload) {
     transactionId: transaction.id,
     paymentIntentId: stripePaymentIntentId,
   });
+
+  // Send receipt email to the seller (fire-and-forget — never block the webhook response)
+  if (user?.email) {
+    sendPaymentReceiptEmail({
+      toEmail: user.email,
+      sellerName: user.name ?? user.email,
+      grossAmountCents: splitResult.gross,
+      platformFeeCents: splitResult.provision,
+      netAmountCents: splitResult.net,
+      currency,
+      transactionId: transaction.id,
+      description,
+      splits: splitResult.splits.map((s) => ({
+        poolName: s.poolName,
+        amountCents: s.amountCents,
+        color: s.color,
+      })),
+    }).catch((err) =>
+      logTransaction("fleep_stream.receipt_email_failed", { transactionId: transaction.id, error: String(err) })
+    );
+  }
 
   return {
     transactionId: transaction.id,

@@ -12,8 +12,13 @@ export interface AdminSession {
   admin?: AdminSessionUser;
 }
 
+const adminSessionSecret = process.env.ADMIN_SESSION_SECRET;
+if (!adminSessionSecret) {
+  throw new Error("ADMIN_SESSION_SECRET environment variable is not set");
+}
+
 export const ADMIN_SESSION_OPTIONS: SessionOptions = {
-  password: process.env.ADMIN_SESSION_SECRET || "fleeper-admin-dev-secret-change-in-prod-32c",
+  password: adminSessionSecret,
   cookieName: "fleeper_admin_session",
   cookieOptions: {
     secure: process.env.NODE_ENV === "production",

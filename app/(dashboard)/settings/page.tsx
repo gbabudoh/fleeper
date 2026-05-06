@@ -5,6 +5,7 @@ import {
   User, Lock, Key, AlertTriangle, CheckCircle2, AlertCircle,
   Loader2, Eye, EyeOff, Copy, Trash2, Plus, Shield,
   Download, ShieldCheck, ShieldOff, Sun, Moon, Palette, X,
+  CreditCard, ExternalLink, RefreshCw,
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -473,6 +474,131 @@ function ApiKeysTab({ showToast }: { showToast: (m: string, t?: "ok" | "err") =>
   );
 }
 
+// ─── Payments Tab ─────────────────────────────────────────────────────────────
+function PaymentsTab({ showToast }: { showToast: (m: string, t?: "ok" | "err") => void }) {
+  const [status,    setStatus]    = useState<{ connected: boolean; chargesEnabled: boolean; payoutsEnabled: boolean; detailsSubmitted: boolean } | null>(null);
+  const [loading,   setLoading]   = useState(true);
+  const [launching, setLaunching] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res  = await fetch("/api/stripe/onboard");
+      const data = await res.json();
+      setStatus(data);
+    } catch {
+      showToast("Failed to load payment status", "err");
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleOnboard = async () => {
+    setLaunching(true);
+    try {
+      const res  = await fetch("/api/stripe/onboard", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error ?? "Failed to start onboarding", "err"); return; }
+      window.location.href = data.url;
+    } catch {
+      showToast("Network error — try again", "err");
+    } finally {
+      setLaunching(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12 gap-3">
+        <Loader2 size={20} className="animate-spin text-[#00FFCC]" />
+        <p className="text-sm text-white/40">Checking Stripe status…</p>
+      </div>
+    );
+  }
+
+  const fullyActive = status?.chargesEnabled && status?.payoutsEnabled;
+
+  return (
+    <div className="space-y-5">
+      {/* Status card */}
+      <div className={`rounded-2xl p-5 border flex items-start gap-4 ${
+        fullyActive
+          ? "bg-[#00FFCC]/5 border-[#00FFCC]/20"
+          : status?.connected
+          ? "bg-[#FFB347]/5 border-[#FFB347]/20"
+          : "bg-white/3 border-white/10"
+      }`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+          fullyActive ? "bg-[#00FFCC]/15" : status?.connected ? "bg-[#FFB347]/15" : "bg-white/5"
+        }`}>
+          <CreditCard size={18} style={{ color: fullyActive ? "#00FFCC" : status?.connected ? "#FFB347" : "rgba(255,255,255,0.3)" }} />
+        </div>
+        <div className="flex-1">
+          <p className="font-bold text-sm">
+            {fullyActive ? "Stripe account active" : status?.connected ? "Verification in progress" : "Stripe not connected"}
+          </p>
+          <p className="text-xs text-white/40 mt-0.5 leading-relaxed">
+            {fullyActive
+              ? "Your Stripe Connected Account is verified. Payments will be routed to your income pools."
+              : status?.connected
+              ? "Your Stripe account was created but verification is incomplete. Complete it to receive payouts."
+              : "Connect a Stripe account to enable payment routing. Without it, your public profile can't accept live payments."}
+          </p>
+
+          {status?.connected && (
+            <div className="flex items-center gap-4 mt-3">
+              <div className="flex items-center gap-1.5">
+                <div className={`w-2 h-2 rounded-full ${status.chargesEnabled ? "bg-[#00FFCC]" : "bg-white/20"}`} />
+                <span className="text-xs text-white/50">Charges {status.chargesEnabled ? "enabled" : "disabled"}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className={`w-2 h-2 rounded-full ${status.payoutsEnabled ? "bg-[#00FFCC]" : "bg-white/20"}`} />
+                <span className="text-xs text-white/50">Payouts {status.payoutsEnabled ? "enabled" : "disabled"}</span>
+              </div>
+            </div>
+          )}
+        </div>
+        <button
+          onClick={load}
+          className="cursor-pointer text-white/20 hover:text-white/60 transition-colors shrink-0 mt-0.5"
+          title="Refresh status"
+        >
+          <RefreshCw size={14} />
+        </button>
+      </div>
+
+      {/* Action */}
+      {!fullyActive && (
+        <button
+          onClick={handleOnboard}
+          disabled={launching}
+          className="cursor-pointer flex items-center gap-2 px-5 py-3 bg-[#00FFCC] text-[#0A0A0A] font-bold rounded-2xl hover:bg-[#00FFCC]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+        >
+          {launching
+            ? <Loader2 size={15} className="animate-spin" />
+            : <ExternalLink size={15} />}
+          {launching
+            ? "Redirecting to Stripe…"
+            : status?.connected
+            ? "Complete Stripe verification"
+            : "Connect Stripe account"}
+        </button>
+      )}
+
+      {/* Info callout */}
+      <div className="bg-white/3 border border-white/8 rounded-2xl p-4 flex items-start gap-3">
+        <Shield size={15} className="text-white/30 mt-0.5 shrink-0" />
+        <p className="text-xs text-white/40 leading-relaxed">
+          Fleeper uses <strong className="text-white/60">Stripe Connect Express</strong> to route payments directly to your bank accounts.
+          Stripe handles all KYC and identity verification — Fleeper never stores your bank credentials.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Danger Zone Tab ──────────────────────────────────────────────────────────
 function DangerTab({ profile, showToast }: { profile: UserProfile; showToast: (m: string, t?: "ok" | "err") => void }) {
   const [exporting,    setExporting]    = useState(false);
@@ -720,6 +846,7 @@ const TABS = [
   { id: "profile",    label: "Profile",    icon: User,          color: "#00FFCC" },
   { id: "appearance", label: "Appearance", icon: Palette,       color: "#FFB347" },
   { id: "security",   label: "Security",   icon: Lock,          color: "#8B5CF6" },
+  { id: "payments",   label: "Payments",   icon: CreditCard,    color: "#00FFCC" },
   { id: "apikeys",    label: "API Keys",   icon: Key,           color: "#FFB347" },
   { id: "danger",     label: "Danger",     icon: AlertTriangle, color: "#ef4444" },
 ] as const;
@@ -795,15 +922,17 @@ export default function SettingsPage() {
                   profile:    "Manage your public profile and contact details.",
                   appearance: "Choose your preferred interface theme.",
                   security:   "Change your password and review active sessions.",
+                  payments:   "Connect Stripe to enable payment routing to your bank accounts.",
                   apikeys:    "Generate and manage API keys for integrations.",
                   danger:     "Export your data or permanently close your account.",
                 }[tab]}
               >
                 {tab === "profile"    && profile && <ProfileTab    profile={profile} onUpdate={setProfile} />}
                 {tab === "appearance" && <AppearanceTab />}
-                {tab === "security"   && <SecurityTab showToast={showToast} />}
-                {tab === "apikeys"    && <ApiKeysTab  showToast={showToast} />}
-                {tab === "danger"     && profile && <DangerTab     profile={profile} showToast={showToast} />}
+                {tab === "security"   && <SecurityTab  showToast={showToast} />}
+                {tab === "payments"   && <PaymentsTab  showToast={showToast} />}
+                {tab === "apikeys"    && <ApiKeysTab   showToast={showToast} />}
+                {tab === "danger"     && profile && <DangerTab profile={profile} showToast={showToast} />}
               </Section>
             )}
           </div>

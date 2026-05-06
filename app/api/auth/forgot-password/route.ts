@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import prisma from "@/lib/db";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { rateLimit, getIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  // 3 reset emails per IP per hour
+  const rl = rateLimit("forgot-password", getIp(req), { limit: 3, windowMs: 3_600_000 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests — try again later" }, { status: 429 });
+  }
+
   const { email } = await req.json();
   if (!email) return NextResponse.json({ error: "Email required." }, { status: 400 });
 

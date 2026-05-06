@@ -13,6 +13,7 @@ import { z } from "zod";
 import { calculateFleepSplit } from "@/lib/split-engine";
 import { stripe } from "@/lib/stripe";
 import { logger } from "@/lib/logger";
+import { rateLimit, getIp } from "@/lib/rate-limit";
 
 const CreateCheckoutSchema = z.object({
   sellerId: z.string().min(1),
@@ -20,12 +21,18 @@ const CreateCheckoutSchema = z.object({
   amountCents: z.number().int().positive().min(50), // min $0.50
   currency: z.string().length(3).default("usd"),
   description: z.string().max(500).optional(),
-  customerEmail: z.string().email().optional(),
+  customerEmail: z.email().optional(),
   serviceId: z.string().optional(),
-  paymentLinkId: z.string().uuid().optional(),
+  paymentLinkId: z.uuid().optional(),
 });
 
 export async function POST(req: NextRequest) {
+  // 20 payment intents per IP per minute — generous for real users, tight for bots
+  const rl = rateLimit("checkout", getIp(req), { limit: 20, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   if (!stripe) {
     return NextResponse.json(
       { error: "Payment processing not configured" },

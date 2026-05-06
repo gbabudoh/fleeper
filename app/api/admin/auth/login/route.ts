@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/db";
 import { getAdminSession } from "@/lib/admin-session";
+import { rateLimit, getIp } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
+  const rl = rateLimit("admin_login", getIp(req), { limit: 5, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many login attempts. Try again in a minute." }, { status: 429 });
+  }
+
   try {
     const { email, password } = await req.json();
     if (!email || !password) {
@@ -34,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("Admin login error:", err);
+    logger.error({ err }, "Admin login error");
     return NextResponse.json({ error: "Server error." }, { status: 500 });
   }
 }
